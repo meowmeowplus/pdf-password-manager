@@ -1,8 +1,20 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+from tkinter import dnd
 from PyPDF2 import PdfReader, PdfWriter
 import os
 import threading
+import logging
+import shutil
+from datetime import datetime
+import json
+
+# Try to import PyCryptodome for AES support
+try:
+    from Crypto.Cipher import AES
+    AES_AVAILABLE = True
+except ImportError:
+    AES_AVAILABLE = False
 
 class PDFPasswordRemoverGUI:
     def __init__(self, root):
