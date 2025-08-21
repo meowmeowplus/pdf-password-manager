@@ -82,3 +82,10 @@ sample_*.pdf
 
 # Code review system
 .claude-code-review/
+
+# Claude Code Review System
+claude-code-review.yaml
+code-review-workflow.md
+CLAUDE.md
+*.log
+.claude-code-review/

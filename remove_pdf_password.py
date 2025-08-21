@@ -27,6 +27,66 @@ def setup_logging(verbose=False):
         ]
     )
 
+def safe_input(prompt, valid_responses=None, default='n'):
+    """Safely get user input with validation."""
+    if valid_responses is None:
+        valid_responses = ['y', 'yes', 'n', 'no']
+    
+    # Check if we're in a non-interactive environment
+    if not sys.stdin.isatty():
+        logging.info(f"Non-interactive environment, using default: {default}")
+        return default
+    
+    while True:
+        try:
+            response = input(prompt).strip().lower()
+            if not response:
+                return default  # Use default for empty input
+            if response in valid_responses:
+                return response
+            print(f"Please enter one of: {', '.join(valid_responses)}")
+        except (EOFError, KeyboardInterrupt):
+            print("\nOperation cancelled.")
+            return default
+
+def validate_output_path(output_path, base_dir=None):
+    """Validate output path to prevent directory traversal."""
+    if base_dir is None:
+        base_dir = os.getcwd()
+    
+    # Resolve absolute path
+    abs_output = os.path.abspath(output_path)
+    abs_base = os.path.abspath(base_dir)
+    
+    # Check if output is within base directory or user's intended location
+    # Allow writing to any location the user has access to, but validate the path
+    output_dir = os.path.dirname(abs_output)
+    if not os.access(output_dir, os.W_OK):
+        if not os.path.exists(output_dir):
+            try:
+                os.makedirs(output_dir, exist_ok=True)
+            except OSError as e:
+                raise ValueError(f"Cannot create output directory: {e}")
+        else:
+            raise ValueError("No write permission for output directory")
+    
+    # Additional security checks
+    if '..' in os.path.basename(output_path):
+        raise ValueError("Potentially unsafe filename")
+    
+    return abs_output
+
+def sanitize_error_message(error_msg, file_path):
+    """Remove sensitive information from error messages."""
+    # Replace full paths with just filenames
+    filename = os.path.basename(file_path)
+    sanitized = str(error_msg).replace(file_path, filename)
+    # Remove any remaining absolute paths
+    import re
+    sanitized = re.sub(r'[A-Za-z]:\\[^\s]*', '<file_path>', sanitized)
+    sanitized = re.sub(r'/[^\s]*', '<file_path>', sanitized)
+    return sanitized
+
 def validate_pdf_file(file_path):
     """Validate if the file is a PDF and accessible."""
     if not os.path.exists(file_path):
@@ -76,7 +136,7 @@ def add_password(input_pdf, output_pdf, user_password, owner_password=None, crea
                 backup_path = create_backup(input_pdf)
             except Exception as e:
                 logging.warning(f"Could not create backup: {e}")
-                if not input("Continue without backup? (y/N): ").lower().startswith('y'):
+                if safe_input("Continue without backup? (y/N): ") not in ['y', 'yes']:
                     return False
         
         # Read the PDF
@@ -86,12 +146,20 @@ def add_password(input_pdf, output_pdf, user_password, owner_password=None, crea
         if reader.is_encrypted:
             logging.warning("PDF is already password protected")
             print("Warning: This PDF is already password protected.")
-            if not input("Continue anyway? This will re-encrypt the PDF. (y/N): ").lower().startswith('y'):
+            if safe_input("Continue anyway? This will re-encrypt the PDF. (y/N): ") not in ['y', 'yes']:
                 return False
         
+        # Validate output path for security
+        try:
+            output_pdf = validate_output_path(output_pdf)
+        except ValueError as e:
+            logging.error(f"Invalid output path: {e}")
+            print(f"Error: {e}")
+            return False
+
         # Check if output file exists and handle overwrite
         if os.path.exists(output_pdf) and not overwrite:
-            if not input(f"Output file {output_pdf} exists. Overwrite? (y/N): ").lower().startswith('y'):
+            if safe_input(f"Output file {os.path.basename(output_pdf)} exists. Overwrite? (y/N): ") not in ['y', 'yes']:
                 return False
         
         # Create a new PDF writer
@@ -138,8 +206,9 @@ def add_password(input_pdf, output_pdf, user_password, owner_password=None, crea
         return True
         
     except Exception as e:
-        logging.error(f"Error adding password to PDF: {str(e)}")
-        print(f"An error occurred: {str(e)}")
+        sanitized_error = sanitize_error_message(str(e), input_pdf)
+        logging.error(f"Error adding password to PDF: {sanitized_error}")
+        print("An error occurred while processing the file. Check logs for details.")
         return False
 
 def _convert_permissions_to_flag(permissions):
@@ -171,7 +240,7 @@ def remove_password(input_pdf, output_pdf, password, create_backup_flag=True, ov
                 backup_path = create_backup(input_pdf)
             except Exception as e:
                 logging.warning(f"Could not create backup: {e}")
-                if not input("Continue without backup? (y/N): ").lower().startswith('y'):
+                if safe_input("Continue without backup? (y/N): ") not in ['y', 'yes']:
                     return False
         
         # Read the encrypted PDF
@@ -189,9 +258,17 @@ def remove_password(input_pdf, output_pdf, password, create_backup_flag=True, ov
             print("Error: Incorrect password. Please try again.")
             return False
         
+        # Validate output path for security
+        try:
+            output_pdf = validate_output_path(output_pdf)
+        except ValueError as e:
+            logging.error(f"Invalid output path: {e}")
+            print(f"Error: {e}")
+            return False
+
         # Check if output file exists and handle overwrite
         if os.path.exists(output_pdf) and not overwrite:
-            if not input(f"Output file {output_pdf} exists. Overwrite? (y/N): ").lower().startswith('y'):
+            if safe_input(f"Output file {os.path.basename(output_pdf)} exists. Overwrite? (y/N): ") not in ['y', 'yes']:
                 return False
         
         # Create a new PDF writer
@@ -217,8 +294,9 @@ def remove_password(input_pdf, output_pdf, password, create_backup_flag=True, ov
         return True
         
     except Exception as e:
-        logging.error(f"Error processing PDF: {str(e)}")
-        print(f"An error occurred: {str(e)}")
+        sanitized_error = sanitize_error_message(str(e), input_pdf)
+        logging.error(f"Error processing PDF: {sanitized_error}")
+        print("An error occurred while processing the file. Check logs for details.")
         return False
 
 def process_batch(file_list, password, output_dir=None, backup=True, overwrite=False, operation='remove', owner_password=None, permissions=None):
@@ -326,7 +404,7 @@ if __name__ == "__main__":
     # Get owner password for add mode
     owner_password = args.owner_password
     if operation == 'add' and not owner_password:
-        owner_response = input("Enter owner password (press Enter to use same as user password): ").strip()
+        owner_response = safe_input("Enter owner password (press Enter to use same as user password): ", valid_responses=None, default="")
         owner_password = owner_response if owner_response else password
     
     # Set up permissions for add mode
