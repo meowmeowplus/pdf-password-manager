@@ -71,7 +71,7 @@ def build_cli():
         'pyinstaller',
         '--onefile',
         '--console',
-        '--name=PDF_Password_Remover_CLI',
+        '--name=PDF_Password_Manager_CLI',
         '--clean',
         '--noconfirm'
     ]
@@ -91,10 +91,10 @@ def build_cli():
     
     return run_command(cmd, "Building CLI executable")
 
-def build_gui():
-    """Build the GUI version."""
+def build_main_gui():
+    """Build the main GUI version with add/remove functionality."""
     print("\n" + "="*50)
-    print("Building GUI Version")
+    print("Building Main GUI Version (Add/Remove)")
     print("="*50)
     
     icon = create_icon()
@@ -102,7 +102,7 @@ def build_gui():
         'pyinstaller',
         '--onefile',
         '--windowed',  # No console window
-        '--name=PDF_Password_Remover_GUI',
+        '--name=PDF_Password_Manager_GUI',
         '--clean',
         '--noconfirm'
     ]
@@ -120,9 +120,41 @@ def build_gui():
         '--hidden-import=tkinter.ttk'
     ])
     
+    cmd.append('pdf_password_manager_gui.py')
+    
+    return run_command(cmd, "Building main GUI executable")
+
+def build_legacy_gui():
+    """Build the legacy enhanced GUI version (remove-only)."""
+    print("\n" + "="*50)
+    print("Building Legacy Enhanced GUI Version")
+    print("="*50)
+    
+    icon = create_icon()
+    cmd = [
+        'pyinstaller',
+        '--onefile',
+        '--windowed',
+        '--name=PDF_Password_Remover_GUI_Enhanced',
+        '--clean',
+        '--noconfirm'
+    ]
+    
+    if icon:
+        cmd.extend(['--icon', icon])
+    
+    cmd.extend([
+        '--hidden-import=PyPDF2',
+        '--hidden-import=Crypto',
+        '--hidden-import=Crypto.Cipher',
+        '--hidden-import=Crypto.Cipher.AES',
+        '--hidden-import=tkinter',
+        '--hidden-import=tkinter.ttk'
+    ])
+    
     cmd.append('pdf_password_remover_gui_enhanced.py')
     
-    return run_command(cmd, "Building GUI executable")
+    return run_command(cmd, "Building legacy enhanced GUI executable")
 
 def build_original_gui():
     """Build the original simple GUI version."""
@@ -191,11 +223,11 @@ def copy_executables():
 
 def main():
     """Main build function."""
-    print("PDF Password Remover - Build Script")
+    print("PDF Password Manager - Build Script")
     print("="*40)
     
     # Check if we're in the right directory
-    required_files = ['remove_pdf_password.py', 'pdf_password_remover_gui.py']
+    required_files = ['remove_pdf_password.py', 'pdf_password_manager_gui.py']
     for file in required_files:
         if not os.path.exists(file):
             print(f"Error: {file} not found. Please run this script from the project directory.")
@@ -206,15 +238,18 @@ def main():
         sys.exit(1)
     
     success_count = 0
-    total_builds = 3
+    total_builds = 4
     
     # Build all versions
     if build_cli():
         success_count += 1
     
-    if build_gui():
+    if build_main_gui():
         success_count += 1
     
+    if build_legacy_gui():
+        success_count += 1
+        
     if build_original_gui():
         success_count += 1
     

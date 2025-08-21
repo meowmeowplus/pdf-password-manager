@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # Import the modules to test
 from remove_pdf_password import (
     setup_logging, validate_pdf_file, create_backup, remove_password, 
-    process_batch
+    add_password, _convert_permissions_to_flag, process_batch
 )
 
 class TestPDFPasswordRemover(unittest.TestCase):
@@ -160,6 +160,23 @@ class TestPDFPasswordRemover(unittest.TestCase):
         # Verify that writer.write was called
         mock_writer.write.assert_called_once()
         
+    def test_convert_permissions_to_flag(self):
+        """Test permissions flag conversion."""
+        # Test all permissions enabled
+        permissions = {'print': True, 'modify': True, 'copy': True, 'annotate': True}
+        flag = _convert_permissions_to_flag(permissions)
+        self.assertEqual(flag, 4 + 8 + 16 + 32)  # 60
+        
+        # Test no permissions
+        permissions = {'print': False, 'modify': False, 'copy': False, 'annotate': False}
+        flag = _convert_permissions_to_flag(permissions)
+        self.assertEqual(flag, 0)
+        
+        # Test partial permissions
+        permissions = {'print': True, 'copy': True}
+        flag = _convert_permissions_to_flag(permissions)
+        self.assertEqual(flag, 4 + 16)  # 20
+
     def test_process_batch_empty_list(self):
         """Test batch processing with empty file list."""
         with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
@@ -184,6 +201,98 @@ class TestPDFPasswordRemover(unittest.TestCase):
         self.assertIn("Successful: 1", output)
         self.assertIn("Failed: 1", output)
         self.assertIn("file2.pdf", output)  # Failed file should be listed
+
+class TestPasswordAddition(unittest.TestCase):
+    """Test cases for password addition functionality."""
+    
+    def setUp(self):
+        """Set up test fixtures."""
+        self.test_dir = tempfile.mkdtemp()
+        self.test_pdf = os.path.join(self.test_dir, "test.pdf")
+        self.output_pdf = os.path.join(self.test_dir, "output.pdf")
+        
+        # Create a fake PDF file for testing
+        with open(self.test_pdf, 'wb') as f:
+            f.write(b'%PDF-1.4\nFake PDF content for testing')
+            
+    def tearDown(self):
+        """Clean up test fixtures."""
+        if os.path.exists(self.test_dir):
+            shutil.rmtree(self.test_dir)
+            
+    @patch('remove_pdf_password.PdfReader')
+    @patch('remove_pdf_password.PdfWriter')
+    def test_add_password_success(self, mock_writer_class, mock_reader_class):
+        """Test successful password addition."""
+        # Mock PdfReader
+        mock_reader = MagicMock()
+        mock_reader.is_encrypted = False
+        mock_reader.pages = [MagicMock(), MagicMock()]  # Two pages
+        mock_reader_class.return_value = mock_reader
+        
+        # Mock PdfWriter
+        mock_writer = MagicMock()
+        mock_writer_class.return_value = mock_writer
+        
+        with patch('builtins.open', mock_open()):
+            result = add_password(self.test_pdf, self.output_pdf, "password123", None, False, True)
+            
+        self.assertTrue(result)
+        
+        # Verify that pages were added to writer
+        self.assertEqual(mock_writer.add_page.call_count, 2)
+        
+        # Verify that encryption was applied
+        mock_writer.encrypt.assert_called_once()
+        
+        # Verify that writer.write was called
+        mock_writer.write.assert_called_once()
+        
+    @patch('remove_pdf_password.PdfReader')
+    @patch('remove_pdf_password.PdfWriter')
+    def test_add_password_with_permissions(self, mock_writer_class, mock_reader_class):
+        """Test password addition with custom permissions."""
+        mock_reader = MagicMock()
+        mock_reader.is_encrypted = False
+        mock_reader.pages = [MagicMock()]
+        mock_reader_class.return_value = mock_reader
+        
+        mock_writer = MagicMock()
+        mock_writer_class.return_value = mock_writer
+        
+        permissions = {'print': True, 'modify': False, 'copy': True, 'annotate': False}
+        
+        with patch('builtins.open', mock_open()):
+            result = add_password(self.test_pdf, self.output_pdf, "password123", "owner123", 
+                                False, True, permissions)
+            
+        self.assertTrue(result)
+        
+        # Check that encrypt was called with correct parameters
+        mock_writer.encrypt.assert_called_once()
+        call_args = mock_writer.encrypt.call_args
+        
+        self.assertEqual(call_args[1]['user_password'], "password123")
+        self.assertEqual(call_args[1]['owner_password'], "owner123")
+        self.assertTrue(call_args[1]['use_128bit'])
+        
+    @patch('remove_pdf_password.PdfReader')
+    def test_add_password_already_encrypted(self, mock_reader_class):
+        """Test adding password to already encrypted PDF."""
+        mock_reader = MagicMock()
+        mock_reader.is_encrypted = True
+        mock_reader_class.return_value = mock_reader
+        
+        # Mock input to decline re-encryption
+        with patch('builtins.input', return_value='n'):
+            result = add_password(self.test_pdf, self.output_pdf, "password123", None, False, True)
+            
+        self.assertFalse(result)
+        
+    def test_add_password_file_not_found(self):
+        """Test password addition with non-existent file."""
+        result = add_password("nonexistent.pdf", "output.pdf", "password123", None, False, True)
+        self.assertFalse(result)
         
 class TestErrorHandling(unittest.TestCase):
     """Test error handling scenarios."""

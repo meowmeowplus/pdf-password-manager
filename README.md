@@ -1,34 +1,36 @@
-# PDF Password Remover v2.0
+# PDF Password Manager v2.0
 
-A comprehensive tool to remove passwords from PDF files, available in both advanced GUI and command-line versions with batch processing, backup functionality, and extensive logging.
+A comprehensive tool to **add and remove passwords** from PDF files, available in both advanced GUI and command-line versions with batch processing, backup functionality, and extensive logging.
 
 ## 🚀 Features
 
 ### Core Features
-- **Enhanced GUI Version**: Modern tabbed interface with batch processing
-- **Advanced CLI Version**: Full command-line tool with batch processing and extensive options
-- **Original Simple GUI**: Lightweight single-file interface
-- **AES Encryption Support**: Works with AES-encrypted PDF files (requires PyCryptodome)
-- **Batch Processing**: Process multiple PDF files at once
-- **Automatic Backups**: Creates timestamped backups before processing
-- **Progress Tracking**: Real-time progress for large files and batches
-- **Comprehensive Logging**: Detailed logs with configurable levels
+- **🔓 Password Removal**: Remove passwords from encrypted PDFs
+- **🔒 Password Addition**: Add password protection to PDFs with custom permissions
+- **📱 Modern GUI**: Tabbed interface with separate Add/Remove sections
+- **⚙️ Advanced CLI**: Full command-line tool with batch processing
+- **🔐 AES Encryption Support**: Works with AES-encrypted PDF files (requires PyCryptodome)
+- **📦 Batch Processing**: Process multiple PDF files at once
+- **💾 Automatic Backups**: Creates timestamped backups before processing
+- **📊 Progress Tracking**: Real-time progress for large files and batches
+- **📋 Comprehensive Logging**: Detailed logs with configurable levels
 
-### GUI Features (Enhanced Version)
-- **Tabbed Interface**: Main processing, settings, and log tabs
-- **File Management**: Add multiple files, remove selected, clear all
-- **Drag & Drop Support**: (Framework in place, extensible with tkinterdnd2)
-- **Settings Persistence**: Remembers preferences between sessions
-- **Real-time Logging**: View processing logs in real-time
-- **Progress Visualization**: Progress bars for batch operations
+### GUI Features
+- **📑 Separate Tabs**: Dedicated "Remove Password" and "Add Password" tabs
+- **📁 File Management**: Add multiple files, remove selected, clear all
+- **🎛️ Settings Persistence**: Remembers preferences between sessions
+- **📊 Real-time Logging**: View processing logs in real-time
+- **🔧 Permission Control**: Fine-grained PDF permissions for password addition
+- **📈 Progress Visualization**: Progress bars for batch operations
 
 ### CLI Features
-- **Batch Mode**: Process multiple files with `--batch` flag
-- **Flexible Output**: Custom output directories and file names
-- **Backup Control**: Enable/disable backups with `--no-backup`
-- **Overwrite Control**: Automatic overwrite with `--overwrite`
-- **Verbose Logging**: Detailed output with `-v/--verbose`
-- **Password Options**: Provide password via command line or prompt
+- **🎯 Dual Mode**: `--add` or `--remove` operations
+- **📦 Batch Mode**: Process multiple files with `--batch` flag
+- **📂 Flexible Output**: Custom output directories and file names
+- **💾 Backup Control**: Enable/disable backups with `--no-backup`
+- **🔄 Overwrite Control**: Automatic overwrite with `--overwrite`
+- **📝 Verbose Logging**: Detailed output with `-v/--verbose`
+- **🔑 Advanced Options**: Owner passwords, permission flags
 
 ## 📋 Requirements
 
@@ -66,61 +68,84 @@ pip install pdf-password-remover
 
 ## 📖 Usage
 
-### Enhanced GUI Version (Recommended)
+### New Complete GUI (Recommended)
 ```bash
-python pdf_password_remover_gui_enhanced.py
+python pdf_password_manager_gui.py
 ```
 
 Features:
-- **Main Tab**: Add files, set password, configure options
+- **Remove Password Tab**: Select encrypted PDFs and remove protection
+- **Add Password Tab**: Select PDFs and add password protection with permissions
 - **Settings Tab**: Configure output directory, backup settings, logging
 - **Log Tab**: View real-time processing logs
 
-### Original Simple GUI
+### Enhanced GUI (Legacy)
 ```bash
-python pdf_password_remover_gui.py
+python pdf_password_remover_gui_enhanced.py  # Remove-only functionality
+```
+
+### Original Simple GUI (Legacy)
+```bash
+python pdf_password_remover_gui.py  # Remove-only functionality
 ```
 
 ### Command Line Interface
 
-#### Basic Usage
+#### Remove Passwords
 ```bash
 # Single file
-python remove_pdf_password.py document.pdf
+python remove_pdf_password.py document.pdf --remove
 
 # With custom output
-python remove_pdf_password.py document.pdf -o unlocked_document.pdf
+python remove_pdf_password.py document.pdf --remove -o unlocked_document.pdf
 
-# With password (avoid for security)
-python remove_pdf_password.py document.pdf -p "password123"
+# Batch processing
+python remove_pdf_password.py *.pdf --remove --batch --output-dir ./unlocked
 ```
 
-#### Batch Processing
+#### Add Passwords
 ```bash
-# Process multiple files
-python remove_pdf_password.py *.pdf --batch --output-dir ./unlocked
+# Single file with password
+python remove_pdf_password.py document.pdf --add --password "secret123"
 
-# Batch with options
-python remove_pdf_password.py file1.pdf file2.pdf file3.pdf --batch --no-backup --overwrite -v
+# With custom permissions
+python remove_pdf_password.py document.pdf --add --password "secret123" --no-modify --no-copy
+
+# Batch with owner password
+python remove_pdf_password.py *.pdf --add --batch --password "user123" --owner-password "admin456" --output-dir ./protected
 ```
 
-#### Advanced Options
+#### Advanced Examples
 ```bash
-# All options
-python remove_pdf_password.py files*.pdf \
-  --batch \
-  --output-dir ./output \
-  --no-backup \
-  --overwrite \
-  --verbose \
-  --password "secret123"
+# Remove passwords with all options
+python remove_pdf_password.py files*.pdf --remove --batch --output-dir ./unlocked --no-backup --overwrite --verbose
+
+# Add passwords with restricted permissions
+python remove_pdf_password.py document.pdf --add --password "user123" --owner-password "admin456" --no-print --no-modify --no-copy
 ```
 
 ### Command Line Arguments
+
+**Operations:**
+- `--add`: Add password protection to PDF(s)
+- `--remove`: Remove password protection from PDF(s)
+
+**Files & Output:**
 - `input`: PDF file(s) to process
 - `-o, --output`: Output file (single mode) or directory (batch mode)
 - `--output-dir`: Output directory for batch processing
+
+**Password Options:**
 - `-p, --password`: PDF password (will prompt if not provided)
+- `--owner-password`: Owner password (for add mode, defaults to user password)
+
+**Permissions (Add Mode Only):**
+- `--no-print`: Disable printing
+- `--no-modify`: Disable content modification
+- `--no-copy`: Disable copying/extracting
+- `--no-annotate`: Disable annotations
+
+**Processing Options:**
 - `--batch`: Enable batch processing mode
 - `--no-backup`: Skip creating backup files
 - `--overwrite`: Overwrite existing files without confirmation
@@ -136,9 +161,10 @@ python build.py
 ```
 
 This will create:
-- `PDF_Password_Remover_CLI.exe`: Command-line version
-- `PDF_Password_Remover_GUI.exe`: Enhanced GUI version
-- `PDF_Password_Remover_GUI_Simple.exe`: Original simple GUI
+- `PDF_Password_Manager_CLI.exe`: Full command-line version (add/remove)
+- `PDF_Password_Manager_GUI.exe`: Complete GUI with add/remove tabs
+- `PDF_Password_Remover_GUI.exe`: Legacy enhanced GUI (remove-only)
+- `PDF_Password_Remover_GUI_Simple.exe`: Legacy simple GUI (remove-only)
 
 ### Manual Build (Individual)
 ```bash
@@ -170,11 +196,12 @@ python -m pytest test_pdf_password_remover.py --cov=remove_pdf_password --cov-re
 ## 📁 File Structure
 
 ```
-pdf-password-remover/
-├── remove_pdf_password.py              # Enhanced CLI version
-├── pdf_password_remover_gui.py         # Original simple GUI
-├── pdf_password_remover_gui_enhanced.py # Enhanced GUI with tabs
-├── test_pdf_password_remover.py        # Test suite
+pdf-password-manager/
+├── remove_pdf_password.py              # Full CLI (add/remove passwords)
+├── pdf_password_manager_gui.py         # Complete GUI (add/remove tabs)
+├── pdf_password_remover_gui_enhanced.py # Legacy GUI (remove-only)
+├── pdf_password_remover_gui.py         # Legacy simple GUI (remove-only)
+├── test_pdf_password_remover.py        # Comprehensive test suite
 ├── build.py                            # Build script
 ├── requirements.txt                    # Dependencies
 ├── README.md                           # This file

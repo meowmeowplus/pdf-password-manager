@@ -1,0 +1,173 @@
+# 🔍 Claude Code Review Standards
+# Universal code review configuration - works with any programming language
+
+## 🎯 Review Focus Areas
+
+### 🛡️ Security Analysis (Critical Priority)
+- **Input Validation**: All user inputs must be validated and sanitized
+- **SQL Injection**: Use parameterized queries, never concatenate SQL strings  
+- **XSS Prevention**: Escape all user-generated content in outputs
+- **Authentication**: Verify user permissions before sensitive operations
+- **Authorization**: Implement proper access controls and role checks
+- **Sensitive Data**: Never log passwords, tokens, API keys, or PII
+- **Encryption**: Use HTTPS for transit, encrypt sensitive data at rest
+- **File Uploads**: Validate file types, sizes, scan for malicious content
+- **Dependencies**: Check for known vulnerabilities in third-party packages
+- **Environment**: No hardcoded secrets - use environment variables
+
+### ⚠️ Edge Case Detection (High Priority)
+- **Null/Undefined**: Handle null, undefined, None, empty values
+- **Empty Collections**: Check for empty arrays, lists, dictionaries
+- **Boundary Conditions**: Test minimum/maximum values, array bounds
+- **Network Failures**: Handle timeouts, connection errors, service unavailability
+- **Resource Exhaustion**: Memory limits, disk space, file handle limits
+- **Race Conditions**: Concurrent access, threading issues, atomic operations
+- **Error Propagation**: Ensure errors don't leak sensitive information
+- **Invalid States**: Handle unexpected application states gracefully
+
+### 🔧 Error Handling (High Priority) 
+- **Try-Catch Coverage**: All risky operations must be wrapped
+- **Specific Exceptions**: Catch specific exceptions, not generic ones
+- **Resource Cleanup**: Ensure files, connections, handles are closed
+- **Graceful Degradation**: Provide fallbacks when services fail
+- **User-Friendly Messages**: Don't expose internal errors to users
+- **Logging**: Log errors with sufficient context for debugging
+- **Recovery**: Implement retry logic where appropriate
+
+### 📊 Code Quality (Medium Priority)
+- **Function Size**: Keep functions under 50 lines when possible
+- **Single Responsibility**: Each function should do one thing well
+- **Naming**: Use descriptive names for variables and functions
+- **Magic Numbers**: Replace magic numbers with named constants
+- **Code Duplication**: Follow DRY principle, extract common logic
+- **Deep Nesting**: Avoid more than 3-4 levels of nested code
+- **Comments**: Add comments for complex business logic only
+
+## 🚨 Security Severity Levels
+
+### CRITICAL (Fix Immediately)
+- Authentication bypass vulnerabilities
+- SQL injection with data exposure risk
+- Remote code execution possibilities
+- Hardcoded credentials or API keys in code
+- Unrestricted file upload with execution risk
+
+### HIGH (Fix Before Release)
+- Cross-site scripting (XSS) vulnerabilities  
+- Missing authorization checks
+- Sensitive data in logs or error messages
+- Unvalidated redirects and forwards
+- Insecure cryptographic implementations
+
+### MEDIUM (Fix in Next Sprint)
+- Missing input validation on non-critical fields
+- Information disclosure through error messages
+- Insufficient logging of security events  
+- Weak session management
+- Outdated dependencies with known issues
+
+### LOW (Address in Backlog)
+- Missing security headers
+- Verbose error messages
+- Information leakage through timing attacks
+- Missing rate limiting on non-critical endpoints
+
+## 📋 Review Process
+
+### Phase 1: Automated Security Scan
+1. **Read all source files** using Glob and Read tools
+2. **Identify sensitive operations** (auth, database, file I/O)
+3. **Check for common vulnerabilities** using security checklist
+4. **Analyze input/output flows** for validation gaps
+
+### Phase 2: Edge Case Analysis
+1. **Identify error-prone operations** (parsing, network calls, file operations)
+2. **Check boundary conditions** (empty inputs, null values, array bounds)
+3. **Analyze concurrent operations** for race conditions
+4. **Review resource management** (memory leaks, handle leaks)
+
+### Phase 3: Code Quality Review
+1. **Function complexity analysis** (cyclomatic complexity, nesting)
+2. **Code duplication detection** 
+3. **Naming convention consistency**
+4. **Documentation completeness**
+
+## 🔧 Response Template
+
+```
+🔍 DEEP CODE REVIEW RESULTS
+==========================
+
+📋 **Files Analyzed**: [count] files across [languages]
+
+🚨 **CRITICAL Security Issues**:
+- [CRITICAL] Description | Location | Impact | Fix
+
+🔴 **HIGH Priority Issues**:  
+- [HIGH] Description | Location | Impact | Fix
+
+🟡 **MEDIUM Priority Issues**:
+- [MEDIUM] Description | Location | Impact | Fix
+
+⚠️ **Unhandled Edge Cases**:
+- [Case] Description | Location | Scenario | Solution
+
+🔧 **Code Quality Improvements**:
+- [Quality] Description | Location | Improvement | Implementation
+
+✅ **Security Strengths**:
+- [Good practices found]
+
+🎯 **Immediate Actions Required**:
+1. [Most critical fix with code example]
+2. [Second priority fix with code example]  
+3. [Third priority fix with code example]
+
+📝 **Prevention Recommendations**:
+- [How to prevent similar issues in future]
+```
+
+## 🛠️ Language-Specific Considerations
+
+### Python
+- Check for `eval()`, `exec()`, `pickle.loads()` usage
+- Validate SQL queries use parameterized statements
+- Ensure file operations use `with` statements
+- Check for proper exception handling
+
+### JavaScript/Node.js  
+- Look for `eval()`, `innerHTML` assignments without sanitization
+- Check for SQL injection in database queries
+- Validate all Express.js route parameters
+- Ensure proper async/await error handling
+
+### Java
+- Check for SQL injection in JDBC statements
+- Validate input in Spring controllers
+- Look for resource leaks (unclosed streams)
+- Check for proper exception handling
+
+### Go
+- Check for SQL injection using string concatenation
+- Validate error handling (don't ignore errors)
+- Look for goroutine leaks
+- Check for proper resource cleanup with defer
+
+### C#/.NET
+- Check for SQL injection in Entity Framework queries
+- Validate input in API controllers  
+- Look for using statement usage for IDisposable
+- Check for proper exception handling
+
+## 💡 Best Practices to Promote
+
+1. **Defense in Depth**: Multiple layers of security validation
+2. **Fail Securely**: Default to secure state when errors occur
+3. **Least Privilege**: Grant minimum necessary permissions
+4. **Input Validation**: Validate all inputs at boundaries
+5. **Output Encoding**: Encode all outputs to prevent injection
+6. **Error Handling**: Don't leak information through errors
+7. **Logging**: Log security events for monitoring
+8. **Testing**: Include security test cases
+
+Remember: The goal is to find real security issues and provide actionable fixes, not just style improvements!
